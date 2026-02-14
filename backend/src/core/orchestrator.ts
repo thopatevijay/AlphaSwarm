@@ -136,8 +136,19 @@ export class Orchestrator {
       timestamp: Date.now(),
     });
 
-    // 3. Moltbook debate
-    await this.postDebate(tokenId, tokenData.token.name, tokenData.token.symbol, votes);
+    // 3. Moltbook debate (non-critical — don't crash pipeline if posting fails)
+    try {
+      await this.postDebate(tokenId, tokenData.token.name, tokenData.token.symbol, votes);
+    } catch (err) {
+      console.warn(`[Orchestrator] Moltbook debate failed (non-critical):`, err);
+      this.logEvent({
+        type: "system",
+        tokenId,
+        tokenName: tokenData.token.name,
+        message: `Moltbook debate failed: ${err}`,
+        timestamp: Date.now(),
+      });
+    }
 
     // 4. Vote aggregation
     const result = this.voteEngine.evaluate(
@@ -167,9 +178,12 @@ export class Orchestrator {
     return result;
   }
 
+  // Fallback post ID for commenting when new post creation is rate-limited
+  private static INTRO_POST_ID = "662624d7-273b-48e2-8f0c-1da7a0b6b427";
+
   /**
    * Post the debate to Moltbook.
-   * ALPHA posts first, others comment with delays.
+   * Try creating a new post; if rate-limited, fall back to commenting on intro post.
    */
   private async postDebate(
     tokenId: string,
@@ -177,46 +191,61 @@ export class Orchestrator {
     tokenSymbol: string,
     votes: Record<AgentName, AgentAnalysis>
   ): Promise<void> {
-    // ALPHA posts the main analysis
     const title = `Token Analysis: ${tokenName} ($${tokenSymbol})`;
     const alphaContent = `ALPHA's Quantitative Analysis:\n\nScore: ${votes.alpha.score}/10 | Vote: ${votes.alpha.vote} | Confidence: ${votes.alpha.confidence}%\n\n${votes.alpha.analysis}`;
 
-    const post = await this.moltbook.createPost("alpha", title, alphaContent);
-    if (!post) {
-      console.log("[Orchestrator] Could not create Moltbook post (rate limit or dry run)");
-      return;
+    // Try to create a new post
+    let postId: string | null = null;
+    try {
+      const post = await this.moltbook.createPost("alpha", title, alphaContent);
+      if (post) {
+        // Moltbook returns: { post: { id: "..." }, content_id: "..." (after verify) }
+        postId = post.content_id || post.post?.id || post.id || null;
+        console.log(`[Orchestrator] Post created, postId: ${postId}`);
+      }
+    } catch (err) {
+      console.warn(`[Orchestrator] Could not create new post (rate limit?):`, err);
     }
 
-    this.logEvent({
-      type: "debate_posted",
-      agent: "alpha",
-      tokenId,
-      tokenName,
-      message: `ALPHA posted analysis for ${tokenName}`,
-      timestamp: Date.now(),
-    });
-
-    const postId = post.id;
-
-    // Other agents comment with delays
-    const commentOrder: AgentName[] = ["degen", "sage", "contrarian"];
-    for (const agent of commentOrder) {
-      const analysis = votes[agent];
-      const content = `${agent.toUpperCase()}'s Take:\n\nScore: ${analysis.score}/10 | Vote: ${analysis.vote} | Confidence: ${analysis.confidence}%\n\n${analysis.analysis}`;
-
-      await this.moltbook.createComment(agent, postId, content);
-
+    // Fall back to intro post for comments
+    if (!postId) {
+      postId = Orchestrator.INTRO_POST_ID;
+      console.log(`[Orchestrator] Using intro post ${postId} for debate comments`);
+    } else {
       this.logEvent({
         type: "debate_posted",
-        agent,
+        agent: "alpha",
         tokenId,
         tokenName,
-        message: `${agent.toUpperCase()} commented on ${tokenName}`,
+        message: `ALPHA posted analysis for ${tokenName}`,
         timestamp: Date.now(),
       });
+    }
 
-      // Moltbook requires 20s+ between comments (60s for new agents)
-      await new Promise((r) => setTimeout(r, 25000));
+    // All agents comment (including ALPHA if we fell back to intro post)
+    const agents: { name: AgentName; analysis: AgentAnalysis }[] = postId === Orchestrator.INTRO_POST_ID
+      ? AGENT_NAMES.map((name) => ({ name, analysis: votes[name] }))
+      : (["degen", "sage", "contrarian"] as AgentName[]).map((name) => ({ name, analysis: votes[name] }));
+
+    for (const { name, analysis } of agents) {
+      const content = `${name.toUpperCase()} on ${tokenName} ($${tokenSymbol}):\n\nScore: ${analysis.score}/10 | Vote: ${analysis.vote} | Confidence: ${analysis.confidence}%\n\n${analysis.analysis}`;
+
+      try {
+        await this.moltbook.createComment(name, postId, content);
+        this.logEvent({
+          type: "debate_posted",
+          agent: name,
+          tokenId,
+          tokenName,
+          message: `${name.toUpperCase()} commented on ${tokenName}`,
+          timestamp: Date.now(),
+        });
+      } catch (err) {
+        console.warn(`[Orchestrator] ${name} comment failed:`, err);
+      }
+
+      // Moltbook requires 60s between comments for new agents (<24h old)
+      await new Promise((r) => setTimeout(r, 65000));
     }
   }
 

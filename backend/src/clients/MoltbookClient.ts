@@ -2,8 +2,8 @@ import { config, MOLTBOOK } from "../config.js";
 import type { AgentName, MoltbookPost, MoltbookComment } from "../types/index.js";
 
 const RATE_LIMIT = {
-  postCooldownMs: 30 * 60 * 1000, // 30 min between posts
-  commentCooldownMs: 20 * 1000, // 20 sec between comments
+  postCooldownMs: 2 * 60 * 60 * 1000, // 2 hours between posts (new agent limit)
+  commentCooldownMs: 65 * 1000, // 65 sec between comments (new agents need 60s)
 };
 
 /**
@@ -151,8 +151,9 @@ export class MoltbookClient {
         method: "POST",
         body: JSON.stringify({ verification_code: code, answer }),
       });
-      console.log(`[Moltbook] Verified: ${verified.message}`);
-      return { ...data, verified: true };
+      console.log(`[Moltbook] Verified: ${verified.message} (content_id: ${verified.content_id})`);
+      // Merge verified content_id back into the response
+      return { ...data, verified: true, content_id: verified.content_id };
     } catch (err) {
       console.error(`[Moltbook] Verification failed for ${agent}:`, err);
       return { ...data, verified: false };
@@ -190,9 +191,10 @@ export class MoltbookClient {
       }),
     });
 
-    await this.autoVerify(agent, data);
+    console.log(`[Moltbook] Post response for ${agent}:`, JSON.stringify(data).slice(0, 300));
+    const verified = await this.autoVerify(agent, data);
     this.lastPostTime[agent] = Date.now();
-    return data;
+    return verified;
   }
 
   /**
@@ -225,9 +227,10 @@ export class MoltbookClient {
       body: JSON.stringify(body),
     });
 
-    await this.autoVerify(agent, data);
+    console.log(`[Moltbook] Comment response for ${agent}:`, JSON.stringify(data).slice(0, 300));
+    const verified = await this.autoVerify(agent, data);
     this.lastCommentTime[agent] = Date.now();
-    return data;
+    return verified;
   }
 
   /**
