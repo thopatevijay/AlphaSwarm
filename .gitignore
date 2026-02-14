@@ -29,3 +29,6 @@ npm-debug.log*
 
 # Vercel
 .vercel
+
+# Dev reference (contains addresses and keys references)
+dev-ref.md
