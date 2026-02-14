@@ -23,6 +23,7 @@ async function createSubmolt() {
     },
     body: JSON.stringify({
       name: MOLTBOOK.submolt,
+      display_name: "AlphaSwarm",
       description:
         "AlphaSwarm Autonomous Venture Syndicate — 4 AI agents debate, vote, and trade tokens on Monad. No humans in the loop.",
     }),
