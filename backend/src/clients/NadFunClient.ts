@@ -26,25 +26,60 @@ export class NadFunClient {
 
   /**
    * Get token info (name, symbol, creator, graduated status).
+   * API returns { token_info: { token_id, name, symbol, ... } }
    */
   async getToken(tokenId: string): Promise<TokenInfo> {
-    return this.request<TokenInfo>(`/agent/token/${tokenId}`);
+    const raw = await this.request<any>(`/agent/token/${tokenId}`);
+    const t = raw.token_info || raw;
+    return {
+      id: t.token_id || tokenId,
+      name: t.name || "Unknown",
+      symbol: t.symbol || "???",
+      creator: t.creator?.account_id || t.creator || "",
+      imageUrl: t.image_uri,
+      description: t.description,
+      graduated: t.is_graduated ?? false,
+      createdAt: t.created_at ? String(t.created_at) : undefined,
+    };
   }
 
   /**
    * Get current market data (price, holders, volume).
+   * API returns { market_info: { token_id, price, holder_count, ... } }
    */
   async getMarket(tokenId: string): Promise<TokenMarket> {
-    return this.request<TokenMarket>(`/agent/market/${tokenId}`);
+    const raw = await this.request<any>(`/agent/market/${tokenId}`);
+    const m = raw.market_info || raw;
+    return {
+      tokenId: m.token_id || tokenId,
+      price: m.price_native || m.price || "0",
+      priceUsd: m.price_usd || m.price,
+      marketCap: m.market_cap,
+      volume24h: m.volume,
+      holders: m.holder_count,
+      buyCount: m.buy_count,
+      sellCount: m.sell_count,
+    };
   }
 
   /**
    * Get trading metrics by timeframe.
+   * API returns { metrics: { ... } }
    */
   async getMetrics(tokenId: string, timeframe = "1h"): Promise<TokenMetrics> {
-    return this.request<TokenMetrics>(
-      `/agent/metrics/${tokenId}?timeframe=${timeframe}`
+    const raw = await this.request<any>(
+      `/agent/metrics/${tokenId}?timeframes=${timeframe}`
     );
+    const m = raw.metrics || raw;
+    return {
+      tokenId: m.token_id || tokenId,
+      timeframe: m.timeframe || timeframe,
+      priceChange: m.price_change,
+      volumeChange: m.volume_change,
+      buyVolume: m.buy_volume,
+      sellVolume: m.sell_volume,
+      netFlow: m.net_flow,
+    };
   }
 
   /**
@@ -84,12 +119,17 @@ export class NadFunClient {
     metrics: TokenMetrics;
     chart: ChartCandle[];
   }> {
-    const [token, market, metrics, chart] = await Promise.all([
+    // Token and market are required; metrics and chart are optional
+    const [token, market] = await Promise.all([
       this.getToken(tokenId),
       this.getMarket(tokenId),
-      this.getMetrics(tokenId),
-      this.getChart(tokenId),
     ]);
+
+    let metrics: TokenMetrics = { tokenId, timeframe: "1h" };
+    let chart: ChartCandle[] = [];
+    try { metrics = await this.getMetrics(tokenId); } catch { /* non-critical */ }
+    try { chart = await this.getChart(tokenId); } catch { /* non-critical */ }
+
     return { token, market, metrics, chart };
   }
 }
