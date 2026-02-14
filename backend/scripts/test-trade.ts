@@ -13,7 +13,7 @@ import {
   encodeFunctionData,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { config, getNetwork } from "../backend/src/config.js";
+import { config, getNetwork } from "../src/config.js";
 
 // Minimal ABIs for testing
 const lensAbi = [

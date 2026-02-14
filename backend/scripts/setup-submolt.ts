@@ -4,7 +4,7 @@
  *
  * Uses the ALPHA agent's API key to create the community.
  */
-import { config, MOLTBOOK } from "../backend/src/config.js";
+import { config, MOLTBOOK } from "../src/config.js";
 
 async function createSubmolt() {
   const apiKey = config.moltbookKeys.alpha;

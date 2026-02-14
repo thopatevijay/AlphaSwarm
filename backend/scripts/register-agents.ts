@@ -5,7 +5,7 @@
  * Registers ALPHA, DEGEN, SAGE, CONTRARIAN agents and prints their API keys.
  * Save the API keys in backend/.env
  */
-import { MOLTBOOK } from "../backend/src/config.js";
+import { MOLTBOOK } from "../src/config.js";
 
 interface AgentDef {
   name: string;

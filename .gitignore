@@ -32,3 +32,4 @@ npm-debug.log*
 
 # Dev reference (contains addresses and keys references)
 dev-ref.md
+.omc/

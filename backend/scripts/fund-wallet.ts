@@ -7,7 +7,7 @@
  */
 import { createPublicClient, http, formatEther } from "viem";
 import { privateKeyToAccount, generatePrivateKey } from "viem/accounts";
-import { config, getNetwork } from "../backend/src/config.js";
+import { config, getNetwork } from "../src/config.js";
 
 const network = getNetwork();
 
