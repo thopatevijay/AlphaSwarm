@@ -15,11 +15,19 @@ export class LLMClient {
   private openai: OpenAI | null = null;
 
   constructor() {
-    if (config.anthropicApiKey) {
+    // Skip placeholder or obviously invalid keys
+    const isValidKey = (key: string) =>
+      key && key.length > 20 && !key.includes("xxx") && !key.includes("placeholder");
+
+    if (isValidKey(config.anthropicApiKey)) {
       this.anthropic = new Anthropic({ apiKey: config.anthropicApiKey });
     }
-    if (config.openaiApiKey) {
+    if (isValidKey(config.openaiApiKey)) {
       this.openai = new OpenAI({ apiKey: config.openaiApiKey });
+    }
+
+    if (!this.anthropic && !this.openai && !config.mockLLM) {
+      console.warn("[LLM] No valid API keys found. Use MOCK_LLM=true or set a valid ANTHROPIC_API_KEY / OPENAI_API_KEY");
     }
   }
 

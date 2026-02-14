@@ -215,8 +215,8 @@ export class Orchestrator {
         timestamp: Date.now(),
       });
 
-      // Small delay between comments
-      await new Promise((r) => setTimeout(r, 2000));
+      // Moltbook requires 20s+ between comments (60s for new agents)
+      await new Promise((r) => setTimeout(r, 25000));
     }
   }
 
