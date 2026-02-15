@@ -48,15 +48,15 @@ export class Orchestrator {
     try {
       const db = getDb();
       const rows = db.prepare(
-        `SELECT tokenId, amount, buyAmountMON FROM holdings WHERE buyPrice = '0' AND amount IS NOT NULL AND buyAmountMON IS NOT NULL`
-      ).all() as { tokenId: string; amount: string; buyAmountMON: string }[];
+        `SELECT token_id, amount, buy_amount_mon FROM holdings WHERE buy_price = '0' AND amount IS NOT NULL AND buy_amount_mon IS NOT NULL`
+      ).all() as { token_id: string; amount: string; buy_amount_mon: string }[];
       for (const row of rows) {
         const amt = parseFloat(row.amount);
-        const mon = parseFloat(row.buyAmountMON);
+        const mon = parseFloat(row.buy_amount_mon);
         if (amt > 0 && mon > 0) {
           const price = String(mon / amt);
-          db.prepare(`UPDATE holdings SET buyPrice = ? WHERE tokenId = ?`).run(price, row.tokenId);
-          console.log(`[Migration] Fixed buyPrice for ${row.tokenId}: ${price}`);
+          db.prepare(`UPDATE holdings SET buy_price = ? WHERE token_id = ?`).run(price, row.token_id);
+          console.log(`[Migration] Fixed buyPrice for ${row.token_id}: ${price}`);
         }
       }
     } catch {
@@ -335,10 +335,12 @@ export class Orchestrator {
         if (buyPrice === 0) continue;
 
         const pnlPct = ((currentPrice - buyPrice) / buyPrice) * 100;
+        const currentValueMON = currentPrice * parseFloat(holding.amount || "0");
 
-        // Update holding
+        // Update holding with current price and value
         this.portfolio.updateHolding(holding.tokenId, {
           currentPrice: market.price,
+          currentValueMON: currentValueMON.toFixed(6),
           pnlPercent: pnlPct,
         });
 
