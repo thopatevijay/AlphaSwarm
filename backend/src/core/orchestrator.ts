@@ -390,12 +390,65 @@ export class Orchestrator {
   }
 
   getAgentStatus() {
-    return AGENT_NAMES.map((name) => ({
-      name,
-      status: "idle" as const,
-      totalAnalyses: 0,
-      avgScore: 0,
-    }));
+    try {
+      const db = getDb();
+      const rows = db
+        .prepare("SELECT votes_json FROM analyzed_tokens WHERE votes_json IS NOT NULL")
+        .all() as { votes_json: string }[];
+
+      // Aggregate per-agent stats from stored votes
+      const stats: Record<string, { total: number; scoreSum: number }> = {};
+      for (const name of AGENT_NAMES) {
+        stats[name] = { total: 0, scoreSum: 0 };
+      }
+
+      for (const row of rows) {
+        try {
+          const votes = JSON.parse(row.votes_json);
+          for (const name of AGENT_NAMES) {
+            if (votes[name]) {
+              stats[name].total += 1;
+              stats[name].scoreSum += votes[name].score ?? 0;
+            }
+          }
+        } catch {
+          // skip malformed JSON
+        }
+      }
+
+      // Check if any agent is currently active (event in last 2 minutes)
+      const recentCutoff = Date.now() - 120_000;
+      const recentEvents = db
+        .prepare(
+          "SELECT agent, type FROM events WHERE agent IS NOT NULL AND timestamp > ? ORDER BY timestamp DESC"
+        )
+        .all(recentCutoff) as { agent: string; type: string }[];
+
+      const activeStatus: Record<string, string> = {};
+      for (const evt of recentEvents) {
+        if (!activeStatus[evt.agent]) {
+          if (evt.type === "analysis_started") activeStatus[evt.agent] = "analyzing";
+          else if (evt.type === "debate_posted") activeStatus[evt.agent] = "debating";
+          else if (evt.type === "vote_complete") activeStatus[evt.agent] = "voting";
+        }
+      }
+
+      return AGENT_NAMES.map((name) => ({
+        name,
+        status: (activeStatus[name] || "idle") as "idle" | "analyzing" | "debating" | "voting",
+        totalAnalyses: stats[name].total,
+        avgScore: stats[name].total > 0
+          ? Math.round((stats[name].scoreSum / stats[name].total) * 10) / 10
+          : 0,
+      }));
+    } catch {
+      return AGENT_NAMES.map((name) => ({
+        name,
+        status: "idle" as const,
+        totalAnalyses: 0,
+        avgScore: 0,
+      }));
+    }
   }
 
   getAnalyzedTokens() {

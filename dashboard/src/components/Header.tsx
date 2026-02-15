@@ -23,52 +23,72 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-50 border-b border-gray-800/60 bg-gray-950/70 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
+        {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="text-2xl font-bold tracking-tight">
-            <span className="text-amber-400">Alpha</span>
-            <span className="text-gray-100">Swarm</span>
+          <div className="flex items-center gap-0.5">
+            <span className="text-xl font-bold text-amber-400 tracking-tight">
+              Alpha
+            </span>
+            <span className="text-xl font-bold text-gray-100 tracking-tight">
+              Swarm
+            </span>
           </div>
-          <span className="text-xs text-gray-500 border border-gray-700 px-2 py-0.5 rounded">
+          <span className="hidden sm:inline-flex text-[10px] text-gray-500 border border-gray-700/60 px-2 py-0.5 rounded-md uppercase tracking-wider">
             Autonomous Venture Syndicate
           </span>
         </div>
 
-        <div className="flex items-center gap-6 text-sm">
+        {/* Status */}
+        <div className="flex items-center gap-3 sm:gap-5 text-xs">
           {health ? (
             <>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse-dot" />
-                <span className="text-green-400">LIVE</span>
+              {/* Live indicator */}
+              <div className="flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-50" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                </span>
+                <span className="text-green-400 font-semibold text-[11px]">
+                  LIVE
+                </span>
               </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">Network:</span>{" "}
-                <span className="text-gray-300">{health.network}</span>
+
+              {/* Network */}
+              <div className="hidden md:flex items-center gap-1.5 text-gray-500">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500/80" />
+                <span className="text-gray-300 capitalize">{health.network}</span>
               </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">Wallet:</span>{" "}
-                <span className="text-gray-300">{shortenAddress(health.wallet)}</span>
+
+              {/* Wallet */}
+              <div className="hidden lg:block">
+                <span className="text-gray-500 font-mono text-[11px]">
+                  {shortenAddress(health.wallet)}
+                </span>
               </div>
-              <div className="text-gray-400">
-                <span className="text-gray-500">Balance:</span>{" "}
-                <span className="text-amber-400">{health.balance}</span>
+
+              {/* Balance */}
+              <div className="font-semibold text-amber-400">
+                {health.balance}
               </div>
+
+              {/* Mode badges */}
               {health.mockLLM && (
-                <span className="text-xs bg-yellow-900/50 text-yellow-400 px-2 py-0.5 rounded">
+                <span className="badge bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
                   MOCK
                 </span>
               )}
               {health.dryRun && (
-                <span className="text-xs bg-orange-900/50 text-orange-400 px-2 py-0.5 rounded">
+                <span className="badge bg-orange-500/10 text-orange-500 border border-orange-500/20">
                   DRY RUN
                 </span>
               )}
             </>
           ) : (
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-red-400">OFFLINE</span>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-500/80" />
+              <span className="text-red-400 font-medium">OFFLINE</span>
             </div>
           )}
         </div>
