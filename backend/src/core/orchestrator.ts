@@ -136,21 +136,7 @@ export class Orchestrator {
       timestamp: Date.now(),
     });
 
-    // 3. Moltbook debate (non-critical — don't crash pipeline if posting fails)
-    try {
-      await this.postDebate(tokenId, tokenData.token.name, tokenData.token.symbol, votes);
-    } catch (err) {
-      console.warn(`[Orchestrator] Moltbook debate failed (non-critical):`, err);
-      this.logEvent({
-        type: "system",
-        tokenId,
-        tokenName: tokenData.token.name,
-        message: `Moltbook debate failed: ${err}`,
-        timestamp: Date.now(),
-      });
-    }
-
-    // 4. Vote aggregation
+    // 3. Vote aggregation — save immediately so dashboard has data
     const result = this.voteEngine.evaluate(
       tokenId,
       tokenData.token.name,
@@ -167,12 +153,26 @@ export class Orchestrator {
       timestamp: Date.now(),
     });
 
-    // Save to DB
+    // Save to DB before debate (debate takes ~5 min)
     this.saveAnalysis(result);
 
-    // 5. Trade execution
+    // 4. Trade execution
     if (result.decision === "INVEST") {
       await this.executeTrade(result);
+    }
+
+    // 5. Moltbook debate (non-critical — don't crash pipeline if posting fails)
+    try {
+      await this.postDebate(tokenId, tokenData.token.name, tokenData.token.symbol, votes);
+    } catch (err) {
+      console.warn(`[Orchestrator] Moltbook debate failed (non-critical):`, err);
+      this.logEvent({
+        type: "system",
+        tokenId,
+        tokenName: tokenData.token.name,
+        message: `Moltbook debate failed: ${err}`,
+        timestamp: Date.now(),
+      });
     }
 
     return result;
@@ -197,7 +197,7 @@ export class Orchestrator {
     // Try to create a new post
     let postId: string | null = null;
     try {
-      const post = await this.moltbook.createPost("alpha", title, alphaContent);
+      const post = await this.moltbook.createPost("alpha", title, alphaContent) as any;
       if (post) {
         // Moltbook returns: { post: { id: "..." }, content_id: "..." (after verify) }
         postId = post.content_id || post.post?.id || post.id || null;

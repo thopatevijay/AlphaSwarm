@@ -16,6 +16,7 @@ export class Scheduler {
   private orchestrator: Orchestrator;
   private tokenFeed: string[] = [];
   private seeded = false;
+  private busy = false;
 
   constructor(orchestrator: Orchestrator) {
     this.orchestrator = orchestrator;
@@ -47,8 +48,9 @@ export class Scheduler {
     // Scan for new tokens every 60 seconds — process 1 at a time
     // (each analysis takes ~5 min due to Moltbook comment delays)
     cron.schedule("*/60 * * * * *", async () => {
-      if (this.tokenFeed.length === 0) return;
+      if (this.busy || this.tokenFeed.length === 0) return;
 
+      this.busy = true;
       const batch = this.tokenFeed.splice(0, 1);
       console.log(`[Scheduler] Processing ${batch.length} token from queue (${this.tokenFeed.length} remaining)...`);
 
@@ -56,6 +58,8 @@ export class Scheduler {
         await this.orchestrator.analyzeTokens(batch);
       } catch (err) {
         console.error("[Scheduler] Analysis cycle error:", err);
+      } finally {
+        this.busy = false;
       }
     });
 
