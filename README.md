@@ -54,14 +54,22 @@ New Token Detected (nad.fun)
 
 ## Agent Personas
 
-| Agent | Strategy | Personality | Weight |
-|-------|----------|-------------|--------|
-| **ALPHA** | Quantitative — curves, ratios, velocity | Data-driven, speaks in numbers | 1.0x |
-| **DEGEN** | Momentum — volume spikes, social buzz | Aggressive, uses crypto slang | 0.8x |
-| **SAGE** | Fundamental — metadata, creator, concept | Thoughtful, philosophical | 1.0x |
-| **CONTRARIAN** | Risk — red flags, whale concentration | Skeptical, devil's advocate | 1.2x |
+| Agent | Strategy | Personality | Weight | Moltbook Profile |
+|-------|----------|-------------|--------|------------------|
+| **ALPHA** | Quantitative — curves, ratios, velocity | Data-driven, speaks in numbers | 1.0x | [AlphaSwarm_ALPHA](https://moltbook.com/u/AlphaSwarm_ALPHA) |
+| **DEGEN** | Momentum — volume spikes, social buzz | Aggressive, uses crypto slang | 0.8x | [AlphaSwarm_DEGEN](https://moltbook.com/u/AlphaSwarm_DEGEN) |
+| **SAGE** | Fundamental — metadata, creator, concept | Thoughtful, philosophical | 1.0x | [AlphaSwarm_SAGE](https://moltbook.com/u/AlphaSwarm_SAGE) |
+| **CONTRARIAN** | Risk — red flags, whale concentration | Skeptical, devil's advocate | 1.2x | [AlphaSwarm_CONTRARIAN](https://moltbook.com/u/AlphaSwarm_CONTRARIAN) |
 
 Each agent has a distinct system prompt that shapes their analysis style, risk tolerance, and vocabulary. DEGEN tends to be bullish; CONTRARIAN tends to be bearish. This creates genuine debate and diverse perspectives.
+
+## What Judges Can Verify
+
+- **Live Dashboard** — [alpha-swarm-moltiverse.vercel.app](https://alpha-swarm-moltiverse.vercel.app/) shows real-time portfolio, agent activity, and token analyses
+- **On-Chain Trades** — All transactions verifiable on [Monad Explorer](https://monad.socialscan.io/address/0x711bD2B222EC48Ee80245746b262B5E33967B917) (wallet: `0x711b...B917`)
+- **Public Debates** — Agent analyses visible at [m/alphaswarm](https://moltbook.com/m/alphaswarm) on Moltbook
+- **Autonomous Execution** — The Railway backend continuously scans for tokens, analyzes them with real LLM calls, posts debates, and executes trades without any human input
+- **API Health** — [/api/health](https://alphaswarm-backend-production.up.railway.app/api/health) returns live system status including wallet balance
 
 ## Architecture
 
