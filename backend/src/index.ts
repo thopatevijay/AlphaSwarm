@@ -22,6 +22,7 @@ app.get("/api/health", async (_req, res) => {
 
   res.json({
     status: "ok",
+    version: "v3",
     name: "AlphaSwarm",
     network: config.network,
     chainId: network.chainId,
