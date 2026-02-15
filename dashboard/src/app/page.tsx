@@ -5,6 +5,7 @@ import Portfolio from "../components/Portfolio";
 import TokenRadar from "../components/TokenRadar";
 import SwarmStats from "../components/SwarmStats";
 import PnLChart from "../components/PnLChart";
+import DebateStream from "../components/DebateStream";
 
 export default function Home() {
   return (
@@ -20,8 +21,11 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="animate-fade-in-up" style={{ animationDelay: "0.15s", opacity: 0 }}>
+            <div className="animate-fade-in-up" style={{ animationDelay: "0.1s", opacity: 0 }}>
               <PnLChart />
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: "0.15s", opacity: 0 }}>
+              <DebateStream />
             </div>
             <div className="animate-fade-in-up" style={{ animationDelay: "0.25s", opacity: 0 }}>
               <Portfolio />

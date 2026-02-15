@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { timeAgo } from "../lib/utils";
-import DebateView from "./DebateView";
 
 interface AnalyzedToken {
   token_id: string;
@@ -17,11 +16,6 @@ interface AnalyzedToken {
 
 export default function TokenRadar() {
   const [tokens, setTokens] = useState<AnalyzedToken[]>([]);
-  const [selectedToken, setSelectedToken] = useState<{
-    id: string;
-    name: string;
-    symbol: string;
-  } | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -65,14 +59,7 @@ export default function TokenRadar() {
             return (
               <div
                 key={token.token_id}
-                className="px-5 py-3 hover:bg-white/[0.02] transition-colors cursor-pointer"
-                onClick={() =>
-                  setSelectedToken({
-                    id: token.token_id,
-                    name: token.token_name,
-                    symbol: token.token_symbol,
-                  })
-                }
+                className="px-5 py-3 hover:bg-white/[0.02] transition-colors"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="min-w-0 flex items-baseline gap-1.5">
@@ -110,9 +97,9 @@ export default function TokenRadar() {
                     <div className="flex-1 h-1.5 bg-gray-800/60 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full animate-fill transition-all ${
-                          score >= 5.5
+                          score >= 4.5
                             ? "bg-gradient-to-r from-green-500/80 to-emerald-400/80"
-                            : score >= 4
+                            : score >= 3
                               ? "bg-gradient-to-r from-amber-500/80 to-yellow-400/80"
                               : "bg-gradient-to-r from-red-500/80 to-red-400/80"
                         }`}
@@ -131,15 +118,6 @@ export default function TokenRadar() {
             );
           })}
         </div>
-      )}
-
-      {selectedToken && (
-        <DebateView
-          tokenId={selectedToken.id}
-          tokenName={selectedToken.name}
-          tokenSymbol={selectedToken.symbol}
-          onClose={() => setSelectedToken(null)}
-        />
       )}
     </div>
   );

@@ -8,13 +8,15 @@ const RATE_LIMIT = {
 
 /**
  * Solve Moltbook's obfuscated math verification challenges.
- * Challenges use: random case, random punctuation, word splits ("twen ty" for "twenty").
- * Strategy: strip to letters/digits only, regex-match number words, parse operation.
+ * Challenges use: random case, random punctuation, word splits, AND repeated characters.
+ * E.g. "ThIrTtYy FiVee" = "thirty five".
+ * Strategy: strip non-alpha, collapse repeated chars, then match number words + operations.
  */
 
-// Regex pattern: longest number words first to prevent partial matches, then digits
-const NUM_WORD_RE =
-  /(\d+|seventeen|eighteen|nineteen|thirteen|fourteen|fifteen|sixteen|seventy|thousand|hundred|twenty|twelve|eleven|thirty|eighty|ninety|forty|fifty|sixty|seven|three|eight|four|five|nine|zero|one|two|six|ten)/g;
+/** Collapse consecutive runs of the same letter: "thirttyyy" → "thirty" */
+function collapseRuns(s: string): string {
+  return s.replace(/([a-z])\1+/g, "$1");
+}
 
 const WORD_TO_NUM: Record<string, number> = {
   zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7,
@@ -24,16 +26,31 @@ const WORD_TO_NUM: Record<string, number> = {
   seventy: 70, eighty: 80, ninety: 90, hundred: 100, thousand: 1000,
 };
 
-function extractNumbers(text: string): number[] {
-  // Strip to letters+digits only (removes spaces, punctuation — defeats word-split obfuscation)
-  const stripped = text.toLowerCase().replace(/[^a-z0-9]/g, "");
-  const tokens: number[] = [];
+// Pre-compute collapsed forms of number words ("thirteen" → "thirten", "three" → "thre")
+const COLLAPSED_TO_NUM: Record<string, number> = {};
+const COLLAPSED_WORDS: string[] = [];
+for (const [word, num] of Object.entries(WORD_TO_NUM)) {
+  const c = collapseRuns(word);
+  COLLAPSED_TO_NUM[c] = num;
+  COLLAPSED_WORDS.push(c);
+}
+// Sort longest first so regex tries longer matches first (prevents "thirten" matching as "thre"+"ten")
+COLLAPSED_WORDS.sort((a, b) => b.length - a.length);
 
-  // Reset regex state
-  NUM_WORD_RE.lastIndex = 0;
+const COLLAPSED_NUM_RE = new RegExp(
+  `(\\d+|${COLLAPSED_WORDS.join("|")})`, "g"
+);
+
+function extractNumbers(text: string): number[] {
+  // Strip to lowercase letters+digits, then collapse repeated letter runs
+  const stripped = text.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const collapsed = collapseRuns(stripped);
+
+  const tokens: number[] = [];
+  COLLAPSED_NUM_RE.lastIndex = 0;
   let m: RegExpExecArray | null;
-  while ((m = NUM_WORD_RE.exec(stripped)) !== null) {
-    const val = /^\d+$/.test(m[1]) ? parseInt(m[1], 10) : WORD_TO_NUM[m[1]];
+  while ((m = COLLAPSED_NUM_RE.exec(collapsed)) !== null) {
+    const val = /^\d+$/.test(m[1]) ? parseInt(m[1], 10) : COLLAPSED_TO_NUM[m[1]];
     if (val !== undefined) tokens.push(val);
   }
 
@@ -72,15 +89,28 @@ function extractNumbers(text: string): number[] {
 
 function solveVerificationChallenge(challenge: string): string {
   const numbers = extractNumbers(challenge);
-  const clean = challenge.toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ");
 
   if (numbers.length === 0) return "0.00";
 
-  const hasReduce = /\b(slow\w*|reduc\w*|subtract\w*|minus|less|loses?|lost|remov\w*|decreas\w*|drops?|fell)\b/.test(clean);
-  const hasTotal = /\b(total|sum|combin\w*|togeth\w*|add\w*|plus|both)\b/.test(clean);
-  const hasMultiply = /\b(multipl\w*|times|product)\b/.test(clean) || /\*/.test(challenge);
-  const hasDivide = /\b(divid\w*|split|ratio)\b|shared equal/.test(clean);
-  const hasNet = /\b(net force|net\b|remain\w*|left over|after|result\w*|final)\b/.test(clean);
+  // Operation detection: try both spaced clean text and fully-collapsed text
+  const clean = challenge.toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ");
+  const opText = collapseRuns(challenge.toLowerCase().replace(/[^a-z]/g, ""));
+
+  const hasReduce =
+    /\b(slow\w*|reduc\w*|subtract\w*|minus|less|loses?|lost|remov\w*|decreas\w*|drops?|fell)\b/.test(clean)
+    || /(slow|reduc|subtract|minus|less|lose|lost|remov|decreas|drop|fell)/.test(opText);
+  const hasTotal =
+    /\b(total|sum|combin\w*|togeth\w*|add\w*|plus|both)\b/.test(clean)
+    || /(total|sum|combin|together|plus|both)/.test(opText);
+  const hasMultiply =
+    /\b(multipl\w*|times|product)\b/.test(clean) || /\*/.test(challenge)
+    || /(multipl|times|product)/.test(opText);
+  const hasDivide =
+    /\b(divid\w*|split|ratio)\b|shared equal/.test(clean)
+    || /(divid|split|ratio|sharedequal)/.test(opText);
+  const hasNet =
+    /\b(net force|net\b|remain\w*|left over|after|result\w*|final)\b/.test(clean)
+    || /(netforce|net|remain|leftover|after|result|final)/.test(opText);
 
   let result: number;
   if (numbers.length === 1) {
@@ -90,7 +120,6 @@ function solveVerificationChallenge(challenge: string): string {
   } else if (hasDivide && numbers.length === 2) {
     result = numbers[0] / numbers[1];
   } else if (hasNet || hasReduce) {
-    // Net/reduce takes priority over total (e.g. "net force" = subtraction)
     result = numbers[0];
     for (let i = 1; i < numbers.length; i++) result -= numbers[i];
   } else if (hasTotal) {
