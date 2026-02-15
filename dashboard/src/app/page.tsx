@@ -4,6 +4,7 @@ import AgentPanel from "../components/AgentPanel";
 import Portfolio from "../components/Portfolio";
 import TokenRadar from "../components/TokenRadar";
 import SwarmStats from "../components/SwarmStats";
+import PnLChart from "../components/PnLChart";
 
 export default function Home() {
   return (
@@ -11,20 +12,33 @@ export default function Home() {
       <Header />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Dynamic stats bar */}
-        <SwarmStats />
+        <div className="animate-fade-in-up" style={{ animationDelay: "0.05s", opacity: 0 }}>
+          <SwarmStats />
+        </div>
 
         {/* Main grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
-            <Portfolio />
-            <LiveFeed />
+            <div className="animate-fade-in-up" style={{ animationDelay: "0.15s", opacity: 0 }}>
+              <PnLChart />
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: "0.25s", opacity: 0 }}>
+              <Portfolio />
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: "0.35s", opacity: 0 }}>
+              <LiveFeed />
+            </div>
           </div>
 
           {/* Right column */}
           <div className="space-y-6">
-            <AgentPanel />
-            <TokenRadar />
+            <div className="animate-fade-in-up" style={{ animationDelay: "0.2s", opacity: 0 }}>
+              <AgentPanel />
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: "0.3s", opacity: 0 }}>
+              <TokenRadar />
+            </div>
           </div>
         </div>
       </main>

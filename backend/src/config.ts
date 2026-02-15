@@ -72,6 +72,6 @@ export const TRADING = {
   deadlineSecs: 300,            // 5 min deadline
   takeProfitPct: 50,            // +50% exit
   stopLossPct: 30,              // -30% exit
-  voteThreshold: 5.5,           // Weighted score threshold
+  voteThreshold: 4.5,           // Weighted score threshold
   minYesVotes: 2,               // Minimum YES votes (majority weighted)
 } as const;

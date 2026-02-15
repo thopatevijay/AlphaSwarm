@@ -8,6 +8,7 @@ import { VoteEngine } from "./voteEngine.js";
 import { Portfolio } from "./portfolio.js";
 import { getDb } from "../db/database.js";
 import { config, TRADING, AGENT_NAMES } from "../config.js";
+import { SyndicateReport } from "./syndicateReport.js";
 import type { AgentName, AgentAnalysis, SwarmEvent, VoteResult } from "../types/index.js";
 
 export class Orchestrator {
@@ -19,6 +20,7 @@ export class Orchestrator {
   private voteEngine: VoteEngine;
   private portfolio: Portfolio;
   private agents: Map<AgentName, BaseAgent>;
+  private syndicateReport: SyndicateReport;
   private running = false;
 
   constructor() {
@@ -30,10 +32,35 @@ export class Orchestrator {
     this.voteEngine = new VoteEngine();
     this.portfolio = new Portfolio();
 
+    this.syndicateReport = new SyndicateReport(this.moltbook, this.portfolio);
+
     // Create agent instances
     this.agents = new Map();
     for (const name of AGENT_NAMES) {
       this.agents.set(name, new BaseAgent(name, this.llm));
+    }
+
+    // One-time migration: fix buyPrice="0" for old holdings
+    this.fixBuyPrices();
+  }
+
+  private fixBuyPrices(): void {
+    try {
+      const db = getDb();
+      const rows = db.prepare(
+        `SELECT tokenId, amount, buyAmountMON FROM holdings WHERE buyPrice = '0' AND amount IS NOT NULL AND buyAmountMON IS NOT NULL`
+      ).all() as { tokenId: string; amount: string; buyAmountMON: string }[];
+      for (const row of rows) {
+        const amt = parseFloat(row.amount);
+        const mon = parseFloat(row.buyAmountMON);
+        if (amt > 0 && mon > 0) {
+          const price = String(mon / amt);
+          db.prepare(`UPDATE holdings SET buyPrice = ? WHERE tokenId = ?`).run(price, row.tokenId);
+          console.log(`[Migration] Fixed buyPrice for ${row.tokenId}: ${price}`);
+        }
+      }
+    } catch {
+      // Non-critical — table may not exist yet
     }
   }
 
@@ -480,6 +507,14 @@ export class Orchestrator {
     } catch {
       return [];
     }
+  }
+
+  async discoverFromNetwork(seedTokenId: string): Promise<string[]> {
+    return this.scanner.discoverFromNetwork(seedTokenId);
+  }
+
+  async postSyndicateReport(): Promise<void> {
+    return this.syndicateReport.postReport();
   }
 
   getWalletAddress(): string {

@@ -73,6 +73,51 @@ export class TokenScanner {
   }
 
   /**
+   * Discover new tokens by crawling the network:
+   * 1. Pick a known token → get its swap history → find active wallets
+   * 2. Query those wallets' holdings → find non-graduated tokens we haven't seen
+   */
+  async discoverFromNetwork(seedTokenId: string): Promise<string[]> {
+    const discovered: string[] = [];
+
+    try {
+      // Step 1: Get swap history to find active wallets
+      const swapData = await this.nadFun.getSwapHistory(seedTokenId) as any;
+      const swaps = swapData?.swaps || swapData || [];
+      const wallets = new Set<string>();
+      for (const swap of swaps) {
+        const wallet = swap?.account_info?.account_id;
+        if (wallet) wallets.add(wallet);
+        if (wallets.size >= 5) break; // Limit to 5 wallets to stay within rate limits
+      }
+
+      // Step 2: Query each wallet's holdings for non-graduated tokens
+      for (const wallet of wallets) {
+        try {
+          const holdingsData = await this.nadFun.getHoldings(wallet) as any;
+          const tokens = holdingsData?.tokens || holdingsData || [];
+          for (const t of tokens) {
+            const tokenInfo = t?.token_info;
+            if (!tokenInfo) continue;
+            const tokenId = tokenInfo.token_id;
+            if (!tokenId || tokenInfo.is_graduated || this.seenTokens.has(tokenId)) continue;
+            discovered.push(tokenId);
+          }
+        } catch {
+          // Rate limited or error — skip this wallet
+        }
+      }
+    } catch (err) {
+      console.warn(`[Scanner] Network discovery failed:`, err);
+    }
+
+    if (discovered.length > 0) {
+      console.log(`[Scanner] Discovered ${discovered.length} new tokens from network crawl`);
+    }
+    return discovered;
+  }
+
+  /**
    * Check if a token has already been analyzed.
    */
   hasSeen(tokenId: string): boolean {

@@ -10,6 +10,8 @@ const SEED_TOKENS: string[] = [
   "0x6A93a2c67955b4eA210333514eC9103C6bC67777", // cockmas
   "0x31BbbB9205d6F354833B80cdCd788182b7037777", // Relayer (REAI)
   "0xF68287D696e77fe377999900eb85071Be0e07777", // Metanad (METANAD)
+  "0x148a3a811979e5BF8366FC279B2d67742Fe17777", // PhuckMc (PHUCKMC)
+  "0x39D691612Ef8B4B884b0aA058f41C93d6B527777", // PKMONAD (PKMON)
 ];
 
 export class Scheduler {
@@ -17,6 +19,7 @@ export class Scheduler {
   private tokenFeed: string[] = [];
   private seeded = false;
   private busy = false;
+  private discovering = false;
 
   constructor(orchestrator: Orchestrator) {
     this.orchestrator = orchestrator;
@@ -63,6 +66,26 @@ export class Scheduler {
       }
     });
 
+    // Dynamic token discovery — crawl the network every 10 minutes
+    // Picks a random seed token and finds new tokens from active wallets
+    cron.schedule("*/10 * * * *", async () => {
+      if (this.discovering) return;
+      this.discovering = true;
+
+      try {
+        const seed = SEED_TOKENS[Math.floor(Math.random() * SEED_TOKENS.length)];
+        console.log(`[Scheduler] Running network discovery from ${seed.slice(0, 10)}...`);
+        const newTokens = await this.orchestrator.discoverFromNetwork(seed);
+        if (newTokens.length > 0) {
+          this.addTokens(newTokens);
+        }
+      } catch (err) {
+        console.error("[Scheduler] Discovery error:", err);
+      } finally {
+        this.discovering = false;
+      }
+    });
+
     // Check portfolio exits every 5 minutes
     cron.schedule("*/5 * * * *", async () => {
       console.log("[Scheduler] Checking portfolio exits...");
@@ -73,6 +96,25 @@ export class Scheduler {
       }
     });
 
-    console.log("[Scheduler] Cron jobs active — token scan every 60s, exit check every 5m");
+    // Post syndicate summary report every 2 hours
+    cron.schedule("0 */2 * * *", async () => {
+      console.log("[Scheduler] Posting syndicate report...");
+      try {
+        await this.orchestrator.postSyndicateReport();
+      } catch (err) {
+        console.error("[Scheduler] Syndicate report error:", err);
+      }
+    });
+
+    // Post first report 5 minutes after startup
+    setTimeout(async () => {
+      try {
+        await this.orchestrator.postSyndicateReport();
+      } catch {
+        // Non-critical
+      }
+    }, 5 * 60 * 1000);
+
+    console.log("[Scheduler] Cron jobs active — scan 60s, discovery 10m, exits 5m, report 2h");
   }
 }
