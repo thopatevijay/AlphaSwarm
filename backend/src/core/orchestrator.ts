@@ -265,7 +265,9 @@ export class Orchestrator {
         tokenName: result.tokenName,
         tokenSymbol: result.tokenSymbol,
         amount: amountOut,
-        buyPrice: "0", // Will be calculated from amountOut/MON spent
+        buyPrice: parseFloat(amountOut) > 0
+          ? String(parseFloat(TRADING.maxBuyAmountMON) / parseFloat(amountOut))
+          : "0",
         buyAmountMON: TRADING.maxBuyAmountMON,
         buyTxHash: hash,
         status: "holding",
@@ -452,6 +454,23 @@ export class Orchestrator {
     }
   }
 
+  getAnalyzedToken(tokenId: string) {
+    try {
+      const db = getDb();
+      const row = db
+        .prepare("SELECT * FROM analyzed_tokens WHERE token_id = ?")
+        .get(tokenId) as any;
+      if (!row) return null;
+      let votes = null;
+      if (row.votes_json) {
+        try { votes = JSON.parse(row.votes_json); } catch { /* malformed */ }
+      }
+      return { ...row, votes };
+    } catch {
+      return null;
+    }
+  }
+
   getAnalyzedTokens() {
     try {
       const db = getDb();
@@ -494,7 +513,9 @@ export class Orchestrator {
       tokenName,
       tokenSymbol,
       amount: amountOut,
-      buyPrice: "0",
+      buyPrice: parseFloat(amountOut) > 0
+        ? String(parseFloat(monAmount) / parseFloat(amountOut))
+        : "0",
       buyAmountMON: monAmount,
       buyTxHash: hash,
       status: "holding",

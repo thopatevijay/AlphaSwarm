@@ -22,7 +22,7 @@ app.get("/api/health", async (_req, res) => {
 
   res.json({
     status: "ok",
-    version: "v3",
+    version: "v4",
     name: "AlphaSwarm",
     network: config.network,
     chainId: network.chainId,
@@ -54,6 +54,15 @@ app.get("/api/agents", (_req, res) => {
 app.get("/api/tokens", (_req, res) => {
   const tokens = orchestrator.getAnalyzedTokens();
   res.json({ tokens });
+});
+
+app.get("/api/tokens/:id", (_req, res) => {
+  const token = orchestrator.getAnalyzedToken(_req.params.id);
+  if (!token) {
+    res.status(404).json({ error: "Token not found" });
+    return;
+  }
+  res.json({ token });
 });
 
 // Manual trigger: analyze specific tokens

@@ -37,6 +37,25 @@ export interface AgentStatus {
   avgScore: number;
 }
 
+export interface AgentAnalysis {
+  score: number;
+  vote: "YES" | "NO";
+  confidence: number;
+  analysis: string;
+  criticalFlag?: boolean;
+}
+
+export interface AnalyzedTokenDetail {
+  token_id: string;
+  token_name: string;
+  token_symbol: string;
+  weighted_score: number | null;
+  decision: string | null;
+  votes: Record<AgentName, AgentAnalysis> | null;
+  discovered_at: number;
+  analyzed_at: number | null;
+}
+
 export interface HealthData {
   status: string;
   name: string;

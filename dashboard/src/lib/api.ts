@@ -12,4 +12,6 @@ export const api = {
   portfolio: () => fetchApi<{ holdings: any[]; totalValue: string; totalPnl: string }>("/api/portfolio"),
   agents: () => fetchApi<{ agents: any[] }>("/api/agents"),
   tokens: () => fetchApi<{ tokens: any[] }>("/api/tokens"),
+  tokenDetail: (id: string) =>
+    fetchApi<{ token: any }>(`/api/tokens/${encodeURIComponent(id)}`),
 };
