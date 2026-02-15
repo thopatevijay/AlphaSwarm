@@ -441,7 +441,8 @@ export class Orchestrator {
           ? Math.round((stats[name].scoreSum / stats[name].total) * 10) / 10
           : 0,
       }));
-    } catch {
+    } catch (err) {
+      console.error("[AgentStatus] Error fetching agent stats:", err);
       return AGENT_NAMES.map((name) => ({
         name,
         status: "idle" as const,
