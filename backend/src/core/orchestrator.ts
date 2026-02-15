@@ -416,4 +416,67 @@ export class Orchestrator {
   async getBalance(): Promise<string> {
     return this.trader.getBalance();
   }
+
+  // --- Manual trade endpoints ---
+
+  async manualBuy(tokenId: string, monAmount: string): Promise<{ hash: string; amountOut: string }> {
+    console.log(`[Orchestrator] Manual buy: ${tokenId} for ${monAmount} MON`);
+    const { hash, amountOut } = await this.trader.buy(
+      tokenId as `0x${string}`,
+      monAmount
+    );
+
+    // Track in portfolio
+    let tokenName = tokenId.slice(0, 10);
+    let tokenSymbol = "???";
+    try {
+      const token = await this.nadFun.getToken(tokenId);
+      tokenName = token.name;
+      tokenSymbol = token.symbol;
+    } catch { /* use defaults */ }
+
+    this.portfolio.addHolding({
+      tokenId,
+      tokenName,
+      tokenSymbol,
+      amount: amountOut,
+      buyPrice: "0",
+      buyAmountMON: monAmount,
+      buyTxHash: hash,
+      status: "holding",
+      boughtAt: Date.now(),
+    });
+
+    this.logEvent({
+      type: "trade_executed",
+      tokenId,
+      tokenName,
+      message: `Manual buy: ${tokenName} for ${monAmount} MON (tx: ${hash})`,
+      data: JSON.stringify({ hash, amountOut }),
+      timestamp: Date.now(),
+    });
+
+    return { hash, amountOut };
+  }
+
+  async manualSell(tokenId: string): Promise<{ hash: string; amountOut: string }> {
+    console.log(`[Orchestrator] Manual sell: ${tokenId}`);
+    const { hash, amountOut } = await this.trader.sell(tokenId as `0x${string}`);
+
+    this.portfolio.updateHolding(tokenId, {
+      sellTxHash: hash,
+      status: "sold",
+      soldAt: Date.now(),
+    });
+
+    this.logEvent({
+      type: "exit_triggered",
+      tokenId,
+      message: `Manual sell (tx: ${hash})`,
+      data: JSON.stringify({ hash, amountOut }),
+      timestamp: Date.now(),
+    });
+
+    return { hash, amountOut };
+  }
 }

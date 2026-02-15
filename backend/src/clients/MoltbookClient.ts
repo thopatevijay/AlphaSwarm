@@ -77,8 +77,8 @@ function solveVerificationChallenge(challenge: string): string {
   if (numbers.length === 0) return "0.00";
 
   const hasReduce = /\b(slow\w*|reduc\w*|subtract\w*|minus|less|loses?|lost|remov\w*|decreas\w*|drops?|fell)\b/.test(clean);
-  const hasTotal = /\b(total|sum|combin\w*|togeth\w*|add\w*|plus|both)\b|and.*exert/.test(clean);
-  const hasMultiply = /\b(multipl\w*|times|product)\b/.test(clean);
+  const hasTotal = /\b(total|sum|combin\w*|togeth\w*|add\w*|plus|both)\b/.test(clean);
+  const hasMultiply = /\b(multipl\w*|times|product)\b/.test(clean) || /\*/.test(challenge);
   const hasDivide = /\b(divid\w*|split|ratio)\b|shared equal/.test(clean);
   const hasNet = /\b(net force|net\b|remain\w*|left over|after|result\w*|final)\b/.test(clean);
 
@@ -89,11 +89,12 @@ function solveVerificationChallenge(challenge: string): string {
     result = numbers.reduce((a, b) => a * b, 1);
   } else if (hasDivide && numbers.length === 2) {
     result = numbers[0] / numbers[1];
-  } else if (hasTotal) {
-    result = numbers.reduce((a, b) => a + b, 0);
-  } else if (hasReduce || hasNet) {
+  } else if (hasNet || hasReduce) {
+    // Net/reduce takes priority over total (e.g. "net force" = subtraction)
     result = numbers[0];
     for (let i = 1; i < numbers.length; i++) result -= numbers[i];
+  } else if (hasTotal) {
+    result = numbers.reduce((a, b) => a + b, 0);
   } else {
     result = numbers.reduce((a, b) => a + b, 0);
   }

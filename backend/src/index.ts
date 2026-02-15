@@ -70,6 +70,36 @@ app.post("/api/analyze", async (req, res) => {
   }
 });
 
+// Manual trade: buy a token directly
+app.post("/api/trade/buy", async (req, res) => {
+  const { tokenId, amount } = req.body;
+  if (!tokenId) {
+    res.status(400).json({ error: "tokenId required" });
+    return;
+  }
+  try {
+    const result = await orchestrator.manualBuy(tokenId, amount || "0.1");
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+// Manual trade: sell a token directly
+app.post("/api/trade/sell", async (req, res) => {
+  const { tokenId } = req.body;
+  if (!tokenId) {
+    res.status(400).json({ error: "tokenId required" });
+    return;
+  }
+  try {
+    const result = await orchestrator.manualSell(tokenId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: String(err) });
+  }
+});
+
 // Add tokens to the scanner queue
 app.post("/api/queue", (req, res) => {
   const { tokenIds } = req.body;
